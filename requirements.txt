@@ -6,3 +6,4 @@ faiss-cpu
 requests
 gunicorn
 sentence-transformers
+openai

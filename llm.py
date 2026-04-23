@@ -1,26 +1,20 @@
-import requests
+import os
 from prompt import build_prompt
+from openai import OpenAI
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2:latest"
-
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def chat_with_model(context: str, question: str, history: str):
 
-    # Build prompt with context + history
     full_prompt = build_prompt(context, question, history)
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": MODEL_NAME,
-            "prompt": full_prompt,
-            "stream": False,
-            "temperature": 0.2
-        }
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": full_prompt}
+        ],
+        temperature=0.2
     )
 
-    if response.status_code == 200:
-        return response.json()["response"].strip()
-    else:
-        return f"Error: {response.status_code}"
+    return response.choices[0].message.content
