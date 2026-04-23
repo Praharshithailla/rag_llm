@@ -1,22 +1,5 @@
 flask
 flask-cors
-
-# AI / LLM
-openai
-
-# RAG / embeddings
-langchain
-langchain-community
-
-# vector store
-faiss-cpu
-
-# data handling
 numpy
-pandas
-
-# utilities
-python-dotenv
-tqdm
-transformers
-sentence-transformers
+scikit-learn
+faiss-cpu
