@@ -1,7 +1,6 @@
 import os
 from prompt import build_prompt
 from openai import OpenAI
-
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def chat_with_model(context: str, question: str, history: str):
