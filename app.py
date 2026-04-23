@@ -14,8 +14,8 @@ from app.memory.chat_memory import (
     add_message,
     get_chat_list,
     get_history,
-    update_session_title,      # NEW
-    get_session_message_count  # NEW
+    update_session_title,
+    get_session_message_count
 )
 
 from app.memory.db import create_tables
@@ -24,15 +24,30 @@ app = Flask(__name__)
 CORS(app)
 
 # ==============================
-# INIT
+# INIT (only DB here)
 # ==============================
 create_tables()
 
-documents = load_pdf("data/os_notes.pdf")
-chunks = split_text(documents)
-index, bm25_retriever, stored_chunks = create_vector_store(chunks)
+# ❗ RAG lazy loading variables
+index = None
+bm25_retriever = None
+stored_chunks = None
 
-print("✅ Backend Ready!")
+# ==============================
+# LOAD RAG ONLY WHEN NEEDED
+# ==============================
+def initialize_rag():
+    global index, bm25_retriever, stored_chunks
+
+    if index is None:
+        print("⏳ Loading RAG...")
+
+        documents = load_pdf("data/os_notes.pdf")
+        chunks = split_text(documents)
+
+        index, bm25_retriever, stored_chunks = create_vector_store(chunks)
+
+        print("✅ RAG Ready!")
 
 
 # ==============================
@@ -51,7 +66,6 @@ def sessions():
 
 @app.route("/messages/<int:session_id>", methods=["GET"])
 def messages(session_id):
-    # BUG FIX: also return session title so ChatWindow header can show it
     from app.memory.chat_memory import get_session_title
     msgs = get_messages(session_id)
     title = get_session_title(session_id)
@@ -64,19 +78,17 @@ def messages(session_id):
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json(force=True)
-    print("Incoming data:", data)
 
     question = data.get("query")
     session_id = data.get("session_id")
 
     if not question:
-        return jsonify({
-            "answer": "❌ Empty query",
-            "chunks": [], "scores": [],
-            "rewritten_query": "", "session_title": ""
-        })
+        return jsonify({"answer": "❌ Empty query"})
 
     try:
+        # 🔥 IMPORTANT: initialize RAG here
+        initialize_rag()
+
         chat_history = get_chat_list(session_id)
         rewritten_query = rewrite_query(question, chat_history)
 
@@ -86,15 +98,15 @@ def chat():
 
         context = "\n\n".join(relevant_chunks)
         history = get_history(session_id)
+
         answer = chat_with_model(context, question, history)
 
         add_message(session_id, question, answer)
 
-        # ── Auto-title: set title from first user question ──
+        # auto title
         msg_count = get_session_message_count(session_id)
-        session_title = ""
+
         if msg_count == 1:
-            # Truncate question to 40 chars for sidebar display
             title = question[:40] + ("..." if len(question) > 40 else "")
             update_session_title(session_id, title)
             session_title = title
@@ -107,31 +119,29 @@ def chat():
             "chunks": relevant_chunks,
             "scores": scores,
             "rewritten_query": rewritten_query,
-            "session_title": session_title   # returned so frontend can update header
+            "session_title": session_title
         })
 
     except Exception as e:
         print("ERROR:", str(e))
-        import traceback; traceback.print_exc()
-        return jsonify({
-            "answer": "❌ Backend error",
-            "chunks": [], "scores": [],
-            "rewritten_query": question,
-            "session_title": ""
-        })
+        return jsonify({"answer": "❌ Backend error"})
 
 
 # ==============================
-# STREAMING CHAT
+# STREAM API
 # ==============================
 @app.route("/chat-stream", methods=["POST"])
 def chat_stream():
     data = request.get_json(force=True)
+
     question = data.get("query")
     session_id = data.get("session_id")
 
     if not question:
         return Response("❌ Empty query", mimetype="text/plain")
+
+    # 🔥 initialize
+    initialize_rag()
 
     chat_history = get_chat_list(session_id)
     rewritten_query = rewrite_query(question, chat_history)
@@ -142,6 +152,7 @@ def chat_stream():
 
     context = "\n\n".join(relevant_chunks)
     history = get_history(session_id)
+
     answer = chat_with_model(context, question, history)
 
     def generate():
@@ -151,17 +162,19 @@ def chat_stream():
 
     add_message(session_id, question, answer)
 
-    # Auto-title on first message
-    msg_count = get_session_message_count(session_id)
-    if msg_count == 1:
-        title = question[:40] + ("..." if len(question) > 40 else "")
-        update_session_title(session_id, title)
-
     return Response(generate(), mimetype="text/plain")
 
 
 # ==============================
-# RUN
+# HEALTH CHECK (VERY IMPORTANT 🔥)
+# ==============================
+@app.route("/")
+def home():
+    return "✅ RAG Backend Running!"
+
+
+# ==============================
+# RUN (Railway compatible)
 # ==============================
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8080)
