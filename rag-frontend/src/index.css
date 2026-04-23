@@ -1,0 +1,18 @@
+/* Reset styles */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Full height setup */
+html, body, #root {
+  height: 100%;
+}
+
+/* Basic body */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
