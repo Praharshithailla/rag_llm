@@ -1,5 +1,6 @@
 # Local LLM CS Tutor with Hybrid RAG (Ollama, FastAPI, React)
-
+# demo
+https://drive.google.com/file/d/1TeiTjhYfCaNV3DpzGSQI0UoUjBNe9zqn/view?usp=sharing
 ## Overview
 
 This project is an end-to-end AI Knowledge Assistant built using a local large language model with Ollama (Llama 3.2). It acts as a Computer Science tutor that provides structured academic answers and supports document-based question answering using a complete Retrieval-Augmented Generation pipeline. The system includes hybrid retrieval, conversation memory, query rewriting, and a developer mode for debugging internal operations. It consists of a Python backend and a React frontend interface.
