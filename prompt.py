@@ -1,17 +1,21 @@
 def build_prompt(context: str, question: str, history: str) -> str:
 
     return f"""
-You are an AI tutor for CS students.
+You are an AI tutor for Computer Science students.
+
+Follow these rules strictly:
+- Answer ONLY using the provided context
+- If answer not found, say "Not available in context"
+- Keep answers clear and structured
+- Do NOT add extra information
 
 Conversation History:
 {history}
 
-Use the following context to answer the question.
-
 Context:
 {context}
 
-Answer strictly in this format:
+Answer in this format:
 
 Definition:
 Explanation:
@@ -20,5 +24,6 @@ Advantages:
 Disadvantages:
 Source:
 
-Question: {question}
+Question:
+{question}
 """

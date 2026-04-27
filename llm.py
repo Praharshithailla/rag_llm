@@ -1,33 +1,54 @@
-import os
+import requests
 from prompt import build_prompt
-from openai import OpenAI
 
-# Initialize client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+OLLAMA_URL = "http://localhost:11434/api/chat"
+MODEL_NAME = "llama3.2"
+
 
 def chat_with_model(context: str, question: str, history: str):
     try:
-        # Debug: check API key loaded or not
-        print("API KEY LOADED:", os.getenv("OPENAI_API_KEY"))
-
-        # Build prompt
+        # 🔧 Build prompt
         full_prompt = build_prompt(context, question, history)
 
-        # Debug: prompt check (optional)
-        print("PROMPT:", full_prompt[:200])  # first 200 chars
+        print("\n[DEBUG] Sending to Ollama (chat API)...")
 
-        # OpenAI call
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": full_prompt}
-            ],
-            temperature=0.2
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": MODEL_NAME,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a helpful AI assistant."
+                    },
+                    {
+                        "role": "user",
+                        "content": full_prompt
+                    }
+                ],
+                "stream": False,
+                "options": {
+                    "temperature": 0.2
+                }
+            },
+            timeout=120
         )
 
-        return response.choices[0].message.content
+        # ❌ Error handling
+        if response.status_code != 200:
+            print("❌ Ollama Error:", response.text)
+            return f"Error: {response.status_code}"
+
+        data = response.json()
+
+        # ✅ NEW FORMAT
+        answer = data.get("message", {}).get("content", "").strip()
+
+        return answer if answer else "⚠️ Empty response"
+
+    except requests.exceptions.Timeout:
+        return "Model is slow. Please try again."
 
     except Exception as e:
-        print("🔥 FULL ERROR:", e)   # terminal lo full error
-        return f"ERROR: {str(e)}"    # UI lo kuda error chupisthundi
+        print("🔥 ERROR:", str(e))
+        return f"ERROR: {str(e)}"

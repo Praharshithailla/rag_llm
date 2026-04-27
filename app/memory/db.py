@@ -12,7 +12,7 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # 🔥 Sessions table
+ 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,7 +21,7 @@ def create_tables():
     )
     """)
 
-    # 🔥 Messages table
+   
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

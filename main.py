@@ -18,22 +18,14 @@ create_tables()
 documents = load_pdf("data/os_notes.pdf")
 
 
-# ==============================
-# ✂️ Step 2: Split into chunks
-# ==============================
+
 chunks = split_text(documents)
 
 
-# ==============================
-# 🧠 Step 3: Create Vector Store
-# (FAISS + BM25)
-# ==============================
 index, bm25_retriever, stored_chunks = create_vector_store(chunks)
 
 
-# ==============================
-# 🚀 MAIN LOOP
-# ==============================
+
 if __name__ == "__main__":
 
     print("\n🔥 RAG Chatbot Started (with SQLite Memory + Hybrid Retrieval)\n")
@@ -42,19 +34,13 @@ if __name__ == "__main__":
 
         question = input("🧑 You: ")
 
-        # ❌ Exit condition
+        
         if question.lower() in ["exit", "quit"]:
             print("👋 Exiting chatbot...")
             break
 
-        # ==============================
-        # 🔁 Step 4: Get Chat History (DB)
-        # ==============================
+       
         chat_history = get_chat_list()
-
-        # ==============================
-        # ✍️ Step 5: Query Rewriting
-        # ==============================
         rewritten_query = rewrite_query(question, chat_history)
 
         print(f"\n[DEBUG] Rewritten Query: {rewritten_query}")

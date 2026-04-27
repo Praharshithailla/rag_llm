@@ -13,7 +13,7 @@ function ChatWindow({ sessionId, devMode }) {
   const bottomRef = useRef(null);
   const messagesRef = useRef(null);
 
-  // ── Load messages when session changes ──────────────────
+  // ── Load messages when session changes ──
   useEffect(() => {
     if (!sessionId) {
       setMessages([]);
@@ -35,7 +35,6 @@ function ChatWindow({ sessionId, devMode }) {
 
         setMessages(transformed);
         if (res.data.title) setSessionTitle(res.data.title);
-
       } catch (err) {
         console.error("Error loading messages:", err);
         setMessages([]);
@@ -44,28 +43,24 @@ function ChatWindow({ sessionId, devMode }) {
 
     load();
 
-    // 🔥 FIX: session change appudu scroll TOP ki control
     if (messagesRef.current) {
-      messagesRef.current.scrollTo({
-        top: 0,
-        behavior: "auto",
-      });
+      messagesRef.current.scrollTo({ top: 0, behavior: "auto" });
     }
-
   }, [sessionId]);
 
-  // ── Auto-scroll to bottom (only when messages exist) ──
+  // ── Auto-scroll ──
   useEffect(() => {
     if (messages.length > 0) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, loading]);
 
-  // ── Stream text into last assistant bubble ─────────────
+  // ── Streaming animation (fake typing) ──
   const streamText = async (text) => {
     let temp = "";
     for (let char of text) {
       temp += char;
+
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
@@ -74,21 +69,23 @@ function ChatWindow({ sessionId, devMode }) {
         };
         return updated;
       });
+
       await new Promise((res) => setTimeout(res, 10));
     }
   };
 
-  // ── Send message ───────────────────────────────────────
+  // ── Send message ──
   const handleSend = async () => {
     if (!input.trim() || loading || !sessionId) return;
 
     const currentInput = input.trim();
     setInput("");
 
+    // Add user + assistant placeholder
     setMessages((prev) => [
       ...prev,
       { role: "user", content: currentInput },
-      { role: "assistant", content: "" },
+      { role: "assistant", content: "⏳ Thinking..." },
     ]);
 
     setLoading(true);
@@ -100,19 +97,39 @@ function ChatWindow({ sessionId, devMode }) {
       });
 
       setDevData(res.data);
-      await streamText(res.data.answer || "No response");
 
+      const answer = res.data.answer || "";
+
+      // 🔥 Timeout / error filter
+      if (
+        answer.toLowerCase().includes("timeout") ||
+        answer.toLowerCase().includes("error")
+      ) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: "⚠️ Model slow ga undi. Try again.",
+          };
+          return updated;
+        });
+      } else {
+        await streamText(answer);
+      }
+
+      // Update session title
       if (res.data.session_title) {
         setSessionTitle(res.data.session_title);
       }
 
     } catch (err) {
       console.error("Error:", err);
+
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           role: "assistant",
-          content: "⚠️ Error fetching response. Is backend running?",
+          content: "⚠️ Backend error. Check server.",
         };
         return updated;
       });
@@ -161,19 +178,6 @@ function ChatWindow({ sessionId, devMode }) {
           {messages.map((m, i) => (
             <MessageBubble key={i} msg={m} />
           ))}
-
-          {loading && (
-            <div className="bubble-wrapper assistant">
-              <div className="bubble-avatar ai-avatar">AI</div>
-              <div className="loader">
-                <div className="loader-dots">
-                  <div className="loader-dot" />
-                  <div className="loader-dot" />
-                  <div className="loader-dot" />
-                </div>
-              </div>
-            </div>
-          )}
 
           <div ref={bottomRef} />
         </div>
